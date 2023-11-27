@@ -1,0 +1,93 @@
+(debug,Changing tool #<_current_tool> to tool #<_selected_tool>)
+#100=#<_x> ;stores x coordinate in variable. https://github.com/grblHAL/core/wiki/Expressions-and-flow-control
+#101=#<_y> ;stores y coordinate in variable.
+#102=#<_z>_spindle_cw ;stores Z coordinate in variable.
+#103=#<5063> ;stores previous z tool length result in a variable 
+
+;macro assumes following,
+;2 Digital AUX Outputs, P0 - AUXO0(Tool Holder Clamp), P1 - AUX1(Dust Removal/Taper Flush)
+;1 Digital AUX Input, P0 - AUXI0(Tool In Spindle)
+
+;tool change code here
+G0 G53 Z-3 F4000 ;Retract to machine position z-3
+M5   ;Stop spindle
+M9 ;Stop mist and coolant
+G4 P5 ;Dwell of 5 seconds to allow spindle to stop spinning(dependent on machine and braking resistor)
+
+;tool drop off  
+O101 if [#<_current_tool> EQ 1] ;If _current_tool = 1 then execute following IF routine
+G1 G53 X-100 B0 F800 ;Move to tool rack position #1 in machine coordinates Move in X and rotate carousel via B axis
+G1 G53 Z-136.5 F800 ;Go to tool pocket z position
+G1 G53 X-83.5 F800 ;Move in x to enter tool clamp(-100+(iso20 diameter/2)). This is a positive movement for a left entry clamp and a negative movement for a right entry clamp
+O101 endif ;End if subroutine and continue with code
+
+;insert extra tool drops here using elseif and increment O10? if statements
+
+;O102 elseif [#<_current_tool> EQ 2] ;If _current_tool = 2 then execute If subroutine
+; G1 G53 X-100 B18 F800 ;move to tool rack position #2 in machine coordinates Move in X and rotate carousel via B axis
+; G1 G53 Z-136.5 F800 ;go to tool pocket z position
+; G1 G53 X-83.5 F800 ;move in x to enter tool clamp(-100+(iso20 diameter/2)). This is a positive movement for a left entry clamp and a negative movement for a right entry clamp
+;O102 endif ;end if subroutine and continue with code
+
+;Tool Release
+M64 P0 ;Turn on AUX0 output(tool holder clamp) solenoid
+M64 P1 ;Turn on AUX1 output(Dust Removal/Taper Flush) solenoid
+M66 P0 L3 Q3 ;Wait up to 3 seconds to receive confirmation tool holder has been dropped L3 = Rising Edge
+O201 if <#5399 EQ -1> ;checks wait didn't time out (#5399 = Result from last M66, wait for input. -1 if timed out.)
+alarm<47>   ;on timeout trigger alarm
+M99 ;exit macro
+O201 endif ;End if subroutine and continue with code
+M65 P1 ;Turn off AUX1 output(Dust Removal/Taper Flush) solenoid
+G0 G53 -135 ;retract to machine position z-135(not too high or will break tool clamp)
+M65 P0 ;Turn off AUX0 output release (tool holder clamp) solenoid
+M66 P0 L2 Q2 ;Wait up to 2 seconds to receive falling edge
+O202 if<#5399 EQ 1> ;If tool holder signal(AUX2 Input) is high(Tool is stuck in spindle)
+alarm<47>   ;throw alarm
+M99 ;exit macro
+O202 endif ;End if subroutine and continue with code
+G0 G53 -3 ;retract to machine position z-3
+
+;tool pick up
+O301 if [#<_selected_tool> EQ 1]
+G1 G53 X-83.5 B0 F800 ;move to tool rack position #1
+G1 G53 Z-136.5 F800 ;go to tool pocket z position
+G1 G53 X-83.5 F800 ;move in x to enter tool clamp(-100+(iso20 diameter/2)). This is a postive movement for a left entry clamp and a negative movement for a right entry clamp
+elseif[#<_current_tool> EQ 2]
+G1 G53 X-83.5 B18 F800 ;move to tool rack position #1
+O301 endif
+M64 P0 ;Turn on AUX0 output(tool holder clamp) solenoid
+M64 P1 ;Turn on AUX1 output(Dust Removal/Taper Flush) solenoid
+G1 G53 Z-137 F800 ;move spindle down onto tool 
+G14 P2 ;wait 2 seconds
+M65 P1 ;Turn off AUX1 output(Dust Removal/Taper Flush) solenoid
+M65 P0 ;Turn off AUX0 output release (tool holder clamp)
+M66 P1 L3 Q2   ;Wait up to 2 seconds to receive High signal on
+
+;insert extra tool pick ups here
+
+O401 if<#5399 EQ 1> ;no tool in holder 
+alarm<47>   ;throw alarm
+M99 ;exit macro
+O401 endif ;End if subroutine and continue with code
+
+M61 Q#<_selected_tool> ;move selected tool number to current tool number
+
+O501 if [#<_selected_tool> EQ 1]
+G1 G53 X-83.5 B0 F800 ;move to tool rack position #1
+O501 endif ;End if subroutine and continue with code
+G1 G53 X-83.5 F800 ;move in x to enter tool clamp(-100+(iso20 diameter/2)). This is a positive movement for a left entry clamp and a negative movement for a right entry clamp
+
+;tool setter probing IN PROGRESS
+; G1 G53 X-500 Y-150 ;move to setter XY location
+; G38.2 Z-200 F200 ;Measure tool 
+;O601 if<#5070 EQ 1>   ;check probe is good 
+; G43.1 P#<_selected_tool>Z[#5063-#105] ;setting z offset https://linuxcnc.org/docs/html/gcode/g-code.html#gcode:g43
+;   elseif<#5070 EQ 0> ;if previous probe was unsuccessful alarm out
+alarm<47>   ;throw alarm
+M99 ;exit macro
+;O601 endif ;End if subroutine and continue with code
+; G53 Z-3 ;Retract to machine position z-3
+
+G1 X#100Y#101
+G1 Z#102
+M99
