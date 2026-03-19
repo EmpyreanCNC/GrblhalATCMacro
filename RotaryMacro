@@ -69,8 +69,9 @@ G1 G53 X-438.77 F1000
 G04 P0.1 							;pause for syncing immediate output on/off
 M64 P0 								;release current tool
 G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
+;-----------insert read of tool clamp = 0 here
 G91 G1 F2000 Z50					;z axis up after tool release
-
+;-----------insert read of tool in spindle = 0 here
 
 
 ;----------- select what tool position to drop tool off in based on next tool number
@@ -91,15 +92,16 @@ O102 endif
 G04 P0.1 								;pause for syncing immediate output on/off
 M65 P0 									;clamp tool
 G04 P1 									;pause for 1 second so that pneumatics come to final stroke position
+	;-----------insert read of tool clamp = 1 here
+	;-----------insert read of tool in spindle = 1 here
 M61Q#<_selected_tool>					;set desired tool to current tool
 G91 G1 F1000 G53 X-30					;leave pocket
-G91 G1 F2000 Z50 						;z axis up after tool release
-
-	;G0 G53 	X-148.770 Y-81.800				; go to touch off probe coordinates
+G91 G1 F2000 Z50 						;z axis up 
+	;G0 G53 	X-148.770 Y-81.800			; go to touch off probe coordinates
 	;G1 F2000 G53 Z-71 						; rapid down till a safe distance for sensing
 	;G91 G38.2 Z-60 F1000 					; seek down to Z touch off with speed
 	;G91 G1 F2000 Z3 						; bounce back 3mm, still in G91
-	;G91 G38.2 Z-3 F100 						; precise touch off for getting #5063 value written in machine memory
+	;G91 G38.2 Z-3 F100 					; precise touch off for getting #5063 value written in machine memory
 	;G90
 	;G04 P0.1
 	;(debug,Z referenced at #5063)
