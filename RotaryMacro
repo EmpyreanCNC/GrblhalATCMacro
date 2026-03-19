@@ -1,0 +1,116 @@
+(debug,Changing tool #<_current_tool> to tool #<_selected_tool>)
+; save current position
+#100=#<_x>
+(debug,X)
+#101=#<_y>
+(debug,Y)
+#102=#<_z>
+(debug,Z)
+#103=#<_spindle_on> ;saving spindle status in a variable
+(debug,SPINDLE)
+#104=#<_flood> ;saving coolant status in a variable
+(debug,FLOOD)
+#105=#<_mist>
+(debug,MIST)
+
+
+;tool change code here
+(debug,Z RETRACT)
+G1 F2000 G53 Z-10
+(debug,Z DONE) 
+M5 ;stop spindle
+(debug,SPINDLE STOPPED)
+M9 ;stop coolant/mist
+(debug,COOLANT STOPPED)
+
+
+O301 if [#5070 NE 1]						;if G38.3 and G38.5 probe result: 1 if successful, 0 if not.
+	G0 G53 X-150.590 Y-81.800				;go to touch off probe coordinates
+	G1 F3500 G53 Z-71 					;rapid down till a safe distance for sensing
+	G91 G38.2 Z-60 F1000 					;Set machine to incremental positioning, seek down to Z touch off with speed
+	G91 G1 F2000 Z3 					;bounce back 3mm, still in G91
+	G91 G38.2 Z-3 F100 					;precise touch off for getting #5063 value written in machine memory
+	G90							;set machine back to absolute positioning
+	G04 P0.1
+	(debug,Z referenced at #5063)
+	G0 G53 Z-10 
+O301 endif
+
+#107=#5063 							; save z axis g38 probe result position
+
+O101 if [#<_current_tool> EQ 1]
+	G0 G53 X-438.77 Y-81.00					; move to tool rack position #1 entry
+	G0 G53 Z-194.000					;move to tool rack entry height
+	G1 F2000 G53 X-478.77					;enter pocket
+O101 elseif [#<_current_tool> EQ 2]
+	G0 G53 X-438.77 Y-146					; move to tool rack position #2 entry
+	G0 G53 Z-194.000					;move to tool rack entry height
+	G1 F2000 G53 X-478.77					;enter pocket
+O101 elseif [#<_current_tool> EQ 3]
+	G0 G53 X-438.77 Y-211					; move to tool rack position #3 entry
+	G0 G53 Z-194.000					;move to tool rack entry height
+	G1 F2000 G53 X-478.77					;enter pocket
+O101 elseif [#<_current_tool> EQ 4]
+	G0 G53 X-438.77 Y-276					; move to tool rack position #4 entry
+	G0 G53 Z-194.000					;move to tool rack entry height
+	G1 F2000 G53 X-478.77					;enter pocket
+O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
+	M99
+O101 endif
+
+G04 P0.1 							;pause for syncing immediate output on/off
+M64 P0 								;release current tool
+G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
+G0 G53 Z-100 							;z axis up after tool release
+
+O102 if [#<_selected_tool> EQ 1]
+	G0 G53 Y-81.00						; move to tool rack position #1 entry
+	G1 F2000 G53 Z-194.000
+O102 elseif [#<_selected_tool> EQ 2]
+	G0 G53 Y-146						; move to tool rack position #2 entry
+	G1 F2000 G53 Z-194.000	
+O102 elseif [#<_selected_tool> EQ 3]
+	G0 G53 Y-211						; move to tool rack position #3 entry
+	G1 F2000 G53 Z-194.000
+O102 elseif [#<_selected_tool> EQ 4]
+	G0 G53 Y-276						; move to tool rack position #4 entry
+	G1 F2000 G53 Z-194.000
+O102 endif
+
+G04 P0.1 							;pause for syncing immediate output on/off
+M65 P0 								;clamp tool
+G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
+M61Q#<_selected_tool>						;set desired tool to current tool
+G1 F2000 G53 X-438.77						;leave pocket
+G0 G53 Z-10 							;z axis up after tool release
+
+G0 G53 	X-148.770 Y-81.800					; go to touch off probe coordinates
+G1 F2000 G53 Z-71 						; rapid down till a safe distance for sensing
+G91 G38.2 Z-60 F1000 						; seek down to Z touch off with speed
+G91 G1 F2000 Z3 						; bounce back 3mm, still in G91
+G91 G38.2 Z-3 F100 						; precise touch off for getting #5063 value written in machine memory
+G90
+G04 P0.1
+(debug,Z referenced at #5063)
+G0 Z[#5063]							;rapid to height of last probed result 
+G10 L20 P0 Z[#107]						;activate tool length offset to set tool length zero
+G0 G53 Z-10 
+
+G0 X#100 Y#101							; return to original position
+
+O202 if [#103 EQ 1] 						; restore spindle status
+	M3
+O202 endif
+
+O203 if [#105 EQ 1] 						; restore mist status
+	M7
+O203 endif
+
+O203 if [#104 EQ 1] 					; restore coolant status
+	M8
+O203 endif
+
+
+G0 Z#102
+M99
+M99
