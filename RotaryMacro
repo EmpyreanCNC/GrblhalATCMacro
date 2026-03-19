@@ -38,20 +38,20 @@ O301 endif
 
 #107=#5063 							; save z axis g38 probe result position
 
+
+G0 G53 X-438.77
+
+
 O101 if [#<_current_tool> EQ 1]
-	G0 G53 X-438.77 Y-81.00					; move to tool rack position #1 entry
-	G0 G53 Z-194.000					;move to tool rack entry height
+	G0 G53 Z-194.000 B-1.8					;move to tool rack entry height
 	G1 F2000 G53 X-478.77					;enter pocket
 O101 elseif [#<_current_tool> EQ 2]
-	G0 G53 X-438.77 Y-146					; move to tool rack position #2 entry
-	G0 G53 Z-194.000					;move to tool rack entry height
+	G0 G53 Z-194.000 B-16.2					;move to tool rack entry height
 	G1 F2000 G53 X-478.77					;enter pocket
 O101 elseif [#<_current_tool> EQ 3]
-	G0 G53 X-438.77 Y-211					; move to tool rack position #3 entry
-	G0 G53 Z-194.000					;move to tool rack entry height
+	G0 G53 Z-194.000 B-45					;move to tool rack entry height
 	G1 F2000 G53 X-478.77					;enter pocket
 O101 elseif [#<_current_tool> EQ 4]
-	G0 G53 X-438.77 Y-276					; move to tool rack position #4 entry
 	G0 G53 Z-194.000					;move to tool rack entry height
 	G1 F2000 G53 X-478.77					;enter pocket
 O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
