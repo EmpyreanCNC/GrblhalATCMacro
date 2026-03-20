@@ -16,7 +16,7 @@
 
 ;tool change code here
 (debug,Z RETRACT)
-G1 F2000 G53 Z-10
+G1 F1000 G53 Z-10
 (debug,Z DONE) 
 M5 ;stop spindle
 (debug,SPINDLE STOPPED)
@@ -25,8 +25,8 @@ M9 ;stop coolant/mist
 
 
 ;----------- Open ATC Door(i do this now because z axis conflicts with atc door when probing tool length)
-G04 P0.1 							;pause for syncing immediate output on/off
-M64 P4 								;Open ATC door
+;G04 P0.1 							;pause for syncing immediate output on/off
+;M64 P4 								;Open ATC door
 ;-----------insert read of door sensor here
 
 
@@ -35,7 +35,7 @@ M64 P4 								;Open ATC door
 ;	G0 G53 X-150.590 Y-81.800				;go to touch off probe coordinates
 ;	G1 F3500 G53 Z-71 						;rapid down till a safe distance for sensing
 ;	G91 G38.2 Z-60 F1000 					;Set machine to incremental positioning, seek down to Z touch off with speed
-;	G91 G1 F2000 Z3 						;bounce back 3mm, still in G91
+;	G91 G1 F1000 Z3 						;bounce back 3mm, still in G91
 ;	G91 G38.2 Z-3 F100 						;precise touch off for getting #5063 value written in machine memory
 ;	G90										;set machine back to absolute positioning
 ;	G04 P0.1
@@ -46,61 +46,73 @@ M64 P4 								;Open ATC door
 ;----------- save z axis g38 probe result position
 ;#107=#5063
 
-;-----------move to x position for entry to tool pocket at Feed 1000mm/min
-G1 G53 X-438.77 F1000						
+;-----------move to x position ready for entry to tool pocket at Feed 1000mm/min
+G1 G53 X178.760 F1000
+;(debug,In Position to start toolchange)					
 
 ;----------- select what tool position to drop tool off in based on current tool number
 	O101 if [#<_current_tool> EQ 1]
-		G0 G53 Z-194.000 B-1.8					;move to tool rack entry height
-		G1 F2000 G53 X-478.77					;enter pocket
+		G1 F1000 G53 Z-119.300 B-1.8				;move to tool rack entry height
+		G1 F1000 G53 X246.360					;enter pocket
 	O101 elseif [#<_current_tool> EQ 2]
-		G0 G53 Z-194.000 B-16.2					;move to tool rack entry height
-		G1 F2000 G53 X-478.77					;enter pocket
+		G1 F1000 G53 Z-119.300 B-16.2					;move to tool rack entry height
+		G1 F1000 G53 X246.360					;enter pocket
 	O101 elseif [#<_current_tool> EQ 3]
-		G0 G53 Z-194.000 B-45					;move to tool rack entry height
-		G1 F2000 G53 X-478.77					;enter pocket
+		G1 F1000 G53 Z-119.300 B-30.6					;move to tool rack entry height
+		G1 F1000 G53 X246.360					;enter pocket
 	O101 elseif [#<_current_tool> EQ 4]
-		G0 G53 Z-194.000					;move to tool rack entry height
-		G1 F2000 G53 X-478.77					;enter pocket
+		G1 F1000 G53 Z-119.300 B-45					;move to tool rack entry height
+		G1 F1000 G53 X246.360					;enter pocket
 	O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
+		;(debug,Killing Macro because tool no gt than 4)
+		M99
+	O101 elseif [#<_current_tool> EQ 0]				;if tool number is incorrectly higher than 4, kill the macro
+		;(debug,Killing Macro because tool no eq 0)
 		M99
 	O101 endif
 
 G04 P0.1 							;pause for syncing immediate output on/off
-M64 P0 								;release current tool
+M64 P3 								;release current tool
 G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
 ;-----------insert read of tool clamp = 0 here
-G91 G1 F2000 Z50					;z axis up after tool release
+;(debug,Retracting)
+G91 G1 F1000 Z60					;z axis up after tool release
 ;-----------insert read of tool in spindle = 0 here
 
 
 ;----------- select what tool position to drop tool off in based on next tool number
 O102 if [#<_selected_tool> EQ 1]
-	G0 G53 Y-81.00						; move to tool rack position #1 entry
-	G1 F1000 G53 Z-194.000
+	G1 F1000 G53 B-1.8						; move to tool rack position #1 entry
+	G1 F1000 G53 Z-119.300
 O102 elseif [#<_selected_tool> EQ 2]
-	G0 G53 Y-146						; move to tool rack position #2 entry
-	G1 F1000 G53 Z-194.000	
+	G1 F1000 G53 B-16.2						; move to tool rack position #2 entry
+	G1 F1000 G53 Z-119.300	
 O102 elseif [#<_selected_tool> EQ 3]
-	G0 G53 Y-211						; move to tool rack position #3 entry
-	G1 F1000 G53 Z-194.000
+	G1 F1000 G53 B-30.6						; move to tool rack position #3 entry
+	G1 F1000 G53 Z-119.300
 O102 elseif [#<_selected_tool> EQ 4]
-	G0 G53 Y-276						; move to tool rack position #4 entry
-	G1 F1000 G53 Z-194.000
+	G1 F1000 G53 B-45						; move to tool rack position #4 entry
+	G1 F1000 G53 Z-119.300
+O102 elseif [#<_selected_tool> GT 4]
+;(debug,Killing Macro because new tool no gt 4)
+	M99
+O102 elseif [#<_selected_tool> EQ 0]
+;(debug,Killing Macro because new tool no eq 0)	
+M99
 O102 endif
 
 G04 P0.1 								;pause for syncing immediate output on/off
-M65 P0 									;clamp tool
+M65 P3 									;clamp tool
 G04 P1 									;pause for 1 second so that pneumatics come to final stroke position
 	;-----------insert read of tool clamp = 1 here
 	;-----------insert read of tool in spindle = 1 here
-M61Q#<_selected_tool>					;set desired tool to current tool
-G91 G1 F1000 G53 X-30					;leave pocket
-G91 G1 F2000 Z50 						;z axis up 
+M61Q#<_selected_tool>						;set desired tool to current tool
+G91 G1 F1000 G53 X-30						;leave pocket
+G91 G1 F1000 Z50 						;z axis up 
 	;G0 G53 	X-148.770 Y-81.800			; go to touch off probe coordinates
-	;G1 F2000 G53 Z-71 						; rapid down till a safe distance for sensing
+	;G1 F1000 G53 Z-71 					; rapid down till a safe distance for sensing
 	;G91 G38.2 Z-60 F1000 					; seek down to Z touch off with speed
-	;G91 G1 F2000 Z3 						; bounce back 3mm, still in G91
+	;G91 G1 F1000 Z3 						; bounce back 3mm, still in G91
 	;G91 G38.2 Z-3 F100 					; precise touch off for getting #5063 value written in machine memory
 	;G90
 	;G04 P0.1
