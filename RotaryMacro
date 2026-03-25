@@ -24,50 +24,29 @@ M9 ;stop coolant/mist
 (debug,COOLANT STOPPED)
 
 
-;----------- Open ATC Door(i do this now because z axis conflicts with atc door when probing tool length)
-;G04 P0.1 							;pause for syncing immediate output on/off
-;M64 P4 								;Open ATC door
-;-----------insert read of door sensor here
-
-
-;----------- sub routine to check tool length if tool offset has not been measured yet
-;O301 if [#5070 NE 1]						;if G38.3 and G38.5 probe result: 1 if successful, 0 if not.
-;	G0 G53 X-150.590 Y-81.800				;go to touch off probe coordinates
-;	G1 F3500 G53 Z-71 						;rapid down till a safe distance for sensing
-;	G91 G38.2 Z-60 F1000 					;Set machine to incremental positioning, seek down to Z touch off with speed
-;	G91 G1 F1000 Z3 						;bounce back 3mm, still in G91
-;	G91 G38.2 Z-3 F100 						;precise touch off for getting #5063 value written in machine memory
-;	G90										;set machine back to absolute positioning
-;	G04 P0.1
-;	(debug,Z referenced at #5063)
-;	G0 G53 Z-10 
-;O301 endif
-
-;----------- save z axis g38 probe result position
-;#107=#5063
-
 ;-----------move to x position ready for entry to tool pocket at Feed 1000mm/min
-G1 G53 X178.760 F1000
-;(debug,In Position to start toolchange)					
+G1 G53 X-80 F1000
+m960p0
+(debug,In Position to start toolchange)					
 
 ;----------- select what tool position to drop tool off in based on current tool number
 	O101 if [#<_current_tool> EQ 1]
 		G1 F1000 G53 Z-119.300 B-1.8				;move to tool rack entry height
-		G1 F1000 G53 X246.360					;enter pocket
+		G1 F1000 G53 X-4.7						;enter pocket
 	O101 elseif [#<_current_tool> EQ 2]
-		G1 F1000 G53 Z-119.300 B-16.2					;move to tool rack entry height
-		G1 F1000 G53 X246.360					;enter pocket
+		G1 F1000 G53 Z-119.300 B-16.2				;move to tool rack entry height
+		G1 F1000 G53 X-4.7						;enter pocket
 	O101 elseif [#<_current_tool> EQ 3]
-		G1 F1000 G53 Z-119.300 B-30.6					;move to tool rack entry height
-		G1 F1000 G53 X246.360					;enter pocket
+		G1 F1000 G53 Z-119.300 B-30.6				;move to tool rack entry height
+		G1 F1000 G53 X-4.7						;enter pocket
 	O101 elseif [#<_current_tool> EQ 4]
 		G1 F1000 G53 Z-119.300 B-45					;move to tool rack entry height
-		G1 F1000 G53 X246.360					;enter pocket
+		G1 F1000 G53 X-4.7						;enter pocket
 	O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
-		;(debug,Killing Macro because tool no gt than 4)
+		(debug,Killing Macro because tool no gt than 4)
 		M99
 	O101 elseif [#<_current_tool> EQ 0]				;if tool number is incorrectly higher than 4, kill the macro
-		;(debug,Killing Macro because tool no eq 0)
+		(debug,Killing Macro because tool no eq 0)
 		M99
 	O101 endif
 
@@ -94,10 +73,10 @@ O102 elseif [#<_selected_tool> EQ 4]
 	G1 F1000 G53 B-45						; move to tool rack position #4 entry
 	G1 F1000 G53 Z-119.300
 O102 elseif [#<_selected_tool> GT 4]
-;(debug,Killing Macro because new tool no gt 4)
+(debug,Killing Macro because new tool no gt 4)
 	M99
 O102 elseif [#<_selected_tool> EQ 0]
-;(debug,Killing Macro because new tool no eq 0)	
+(debug,Killing Macro because new tool no eq 0)	
 M99
 O102 endif
 
@@ -107,10 +86,12 @@ G04 P1 									;pause for 1 second so that pneumatics come to final stroke posi
 	;-----------insert read of tool clamp = 1 here
 	;-----------insert read of tool in spindle = 1 here
 M61Q#<_selected_tool>						;set desired tool to current tool
-G91 G1 F1000 G53 X-30						;leave pocket
-G91 G1 F1000 Z50 						;z axis up 
+G91 
+G1 F1000 X-50						;leave pocket
+g90 
+G1 f1000 G53 Z-10
 	;G0 G53 	X-148.770 Y-81.800			; go to touch off probe coordinates
-	;G1 F1000 G53 Z-71 					; rapid down till a safe distance for sensing
+	;G1 F1000 G53 Z-71 						; rapid down till a safe distance for sensing
 	;G91 G38.2 Z-60 F1000 					; seek down to Z touch off with speed
 	;G91 G1 F1000 Z3 						; bounce back 3mm, still in G91
 	;G91 G38.2 Z-3 F100 					; precise touch off for getting #5063 value written in machine memory
@@ -119,9 +100,10 @@ G91 G1 F1000 Z50 						;z axis up
 	;(debug,Z referenced at #5063)
 	;G0 Z[#5063]							;rapid to height of last probed result 
 	;G10 L20 P0 Z[#107]						;activate tool length offset to set tool length zero
-G0 G53 Z-10 
+G1 f1000 G53 Z-10 
 
-G0 X#100 Y#101							; return to original position
+G1 f1000 X#100 Y#101							; return to original position
+m960p1
 
 O202 if [#103 EQ 1] 						; restore spindle status
 	M3
