@@ -26,70 +26,82 @@ M9 ;stop coolant/mist
 
 ;-----------move to x position ready for entry to tool pocket at Feed 1000mm/min
 G1 G53 X-80 F1000
+;disable keepout protection(Scienci)
 m960p0
 (debug,In Position to start toolchange)					
 
 ;----------- select what tool position to drop tool off in based on current tool number
 	O101 if [#<_current_tool> EQ 1]
-		G1 F1000 G53 Z-119.300 B-1.8				;move to tool rack entry height
-		G1 F1000 G53 X-4.7						;enter pocket
+		G1 F1000 G53		B-1.8 					;rotate to appropriate pocket
+		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 2]
-		G1 F1000 G53 Z-119.300 B-16.2				;move to tool rack entry height
-		G1 F1000 G53 X-4.7						;enter pocket
+		G1 F1000 G53		B-16.2 					;rotate to appropriate pocket
+		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 3]
-		G1 F1000 G53 Z-119.300 B-30.6				;move to tool rack entry height
-		G1 F1000 G53 X-4.7						;enter pocket
+		G1 F1000 G53		B-30.6 					;rotate to appropriate pocket
+		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 4]
-		G1 F1000 G53 Z-119.300 B-45					;move to tool rack entry height
-		G1 F1000 G53 X-4.7						;enter pocket
+		G1 F1000 G53		B-45 					;rotate to appropriate pocket
+		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
-		(debug,Killing Macro because tool no gt than 4)
+		(debug,Killing Macro because Current Tool Number greater than 4)
 		M99
 	O101 elseif [#<_current_tool> EQ 0]				;if tool number is incorrectly higher than 4, kill the macro
-		(debug,Killing Macro because tool no eq 0)
+		(debug,Killing Macro because Current Tool Number equals 0)
 		M99
 	O101 endif
 
 G04 P0.1 							;pause for syncing immediate output on/off
 M64 P3 								;release current tool
 G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
-;-----------insert read of tool clamp = 0 here
+;-----------insert read of tool clamp = 0 here -----------
 ;(debug,Retracting)
-G91 G1 F1000 Z60					;z axis up after tool release
-;-----------insert read of tool in spindle = 0 here
+G91 ;set to Incremental Mode  
+G1 F1000 Z60					;z axis up after tool release
+G90	;set to Absolute Mode
+;-----------insert read of tool in spindle = 0 here -----------
 
 
 ;----------- select what tool position to drop tool off in based on next tool number
-O102 if [#<_selected_tool> EQ 1]
-	G1 F1000 G53 B-1.8						; move to tool rack position #1 entry
-	G1 F1000 G53 Z-119.300
-O102 elseif [#<_selected_tool> EQ 2]
-	G1 F1000 G53 B-16.2						; move to tool rack position #2 entry
-	G1 F1000 G53 Z-119.300	
-O102 elseif [#<_selected_tool> EQ 3]
-	G1 F1000 G53 B-30.6						; move to tool rack position #3 entry
-	G1 F1000 G53 Z-119.300
-O102 elseif [#<_selected_tool> EQ 4]
-	G1 F1000 G53 B-45						; move to tool rack position #4 entry
-	G1 F1000 G53 Z-119.300
-O102 elseif [#<_selected_tool> GT 4]
-(debug,Killing Macro because new tool no gt 4)
-	M99
-O102 elseif [#<_selected_tool> EQ 0]
-(debug,Killing Macro because new tool no eq 0)	
-M99
-O102 endif
+	O102 if [#<_selected_tool> EQ 1]
+		G1 F1000 G53 		B-1.8						;rotate to appropriate pocket
+		G1 F1000 G53 		Z-119.300
+	O102 elseif [#<_selected_tool> EQ 2]
+		G1 F1000 G53 		B-16.2						;rotate to appropriate pocket
+		G1 F1000 G53 		Z-119.300	
+	O102 elseif [#<_selected_tool> EQ 3]
+		G1 F1000 G53 		B-30.6						;rotate to appropriate pocket
+		G1 F1000 G53 		Z-119.300
+	O102 elseif [#<_selected_tool> EQ 4]
+		G1 F1000 G53 		B-45						;rotate to appropriate pocket
+		G1 F1000 G53 		Z-119.300
+	O102 elseif [#<_selected_tool> GT 4]
+		(debug,Killing Macro because new tool no gt 4)
+		M99
+	O102 elseif [#<_selected_tool> EQ 0]
+		(debug,Killing Macro because new tool no eq 0)	
+		M99
+	O102 endif
 
 G04 P0.1 								;pause for syncing immediate output on/off
 M65 P3 									;clamp tool
 G04 P1 									;pause for 1 second so that pneumatics come to final stroke position
+
 	;-----------insert read of tool clamp = 1 here
 	;-----------insert read of tool in spindle = 1 here
 M61Q#<_selected_tool>						;set desired tool to current tool
-G91 
-G1 F1000 X-50						;leave pocket
-g90 
-G1 f1000 G53 Z-10
+
+G91 ;set to Incremental Mode
+
+G1 F1000 X-50							;leave pocket
+
+G90	;set to Absolute Mode 
+
+G1 F1000 G53 Z-10						
 	;G0 G53 	X-148.770 Y-81.800			; go to touch off probe coordinates
 	;G1 F1000 G53 Z-71 						; rapid down till a safe distance for sensing
 	;G91 G38.2 Z-60 F1000 					; seek down to Z touch off with speed
@@ -103,6 +115,7 @@ G1 f1000 G53 Z-10
 G1 f1000 G53 Z-10 
 
 G1 f1000 X#100 Y#101							; return to original position
+;reenable keepout protection(Scienci)
 m960p1
 
 O202 if [#103 EQ 1] 						; restore spindle status
