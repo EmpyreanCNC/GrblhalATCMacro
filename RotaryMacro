@@ -23,34 +23,35 @@ M5 ;stop spindle
 M9 ;stop coolant/mist
 (debug,COOLANT STOPPED)
 
-
+M64 p1
+G04 P5
 ;-----------move to x position ready for entry to tool pocket at Feed 1000mm/min
-G1 G53 X-80 F1000
+G1 G53 X-80 F3000
 ;disable keepout protection(Scienci)
 m960p0
 (debug,In Position to start toolchange)					
 
 ;----------- select what tool position to drop tool off in based on current tool number
 	O101 if [#<_current_tool> EQ 1]
-		G1 F1000 G53		B-1.8 					;rotate to appropriate pocket
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F10000 G53		B-1.8 					;rotate to appropriate pocket
+		G1 F2000 G53		Z-119.300				;move to tool rack entry height
 		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 2]
-		G1 F1000 G53		B-16.2 					;rotate to appropriate pocket
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F10000 G53		B-16.2 					;rotate to appropriate pocket
+		G1 F2000 G53		Z-119.300				;move to tool rack entry height
 		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 3]
-		G1 F1000 G53		B-30.6 					;rotate to appropriate pocket
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F10000 G53		B-30.6 					;rotate to appropriate pocket
+		G1 F2000 G53		Z-119.300				;move to tool rack entry height
 		G1 F1000 G53 		X-4.7					;enter pocket
 	O101 elseif [#<_current_tool> EQ 4]
-		G1 F1000 G53		B-45 					;rotate to appropriate pocket
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
+		G1 F10000 G53		B-45 					;rotate to appropriate pocket
+		G1 F2000 G53		Z-119.300				;move to tool rack entry height
 		G1 F1000 G53 		X-4.7					;enter pocket
-	O101 elseif [#<_current_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
+	O101 elseif [#<_current_tool> GT 4]					;if tool number is incorrectly higher than 4, kill the macro
 		(debug,Killing Macro because Current Tool Number greater than 4)
 		M99
-	O101 elseif [#<_current_tool> EQ 0]				;if tool number is incorrectly higher than 4, kill the macro
+	O101 elseif [#<_current_tool> EQ 0]					;if tool number is 0, kill the macro
 		(debug,Killing Macro because Current Tool Number equals 0)
 		M99
 	O101 endif
@@ -66,19 +67,19 @@ G90	;set to Absolute Mode
 ;-----------insert read of tool in spindle = 0 here -----------
 
 
-;----------- select what tool position to drop tool off in based on next tool number
+;----------- select what tool position to move to to pick up new tool on next tool number
 	O102 if [#<_selected_tool> EQ 1]
-		G1 F1000 G53 		B-1.8						;rotate to appropriate pocket
-		G1 F1000 G53 		Z-119.300
+		G1 F10000 G53 		B-1.8						;rotate to appropriate pocket
+		G1 F2000 G53 		Z-119.300
 	O102 elseif [#<_selected_tool> EQ 2]
-		G1 F1000 G53 		B-16.2						;rotate to appropriate pocket
-		G1 F1000 G53 		Z-119.300	
+		G1 F10000 G53 		B-16.2						;rotate to appropriate pocket
+		G1 F2000 G53 		Z-119.300	
 	O102 elseif [#<_selected_tool> EQ 3]
-		G1 F1000 G53 		B-30.6						;rotate to appropriate pocket
-		G1 F1000 G53 		Z-119.300
+		G1 F10000 G53 		B-30.6						;rotate to appropriate pocket
+		G1 F2000 G53 		Z-119.300
 	O102 elseif [#<_selected_tool> EQ 4]
-		G1 F1000 G53 		B-45						;rotate to appropriate pocket
-		G1 F1000 G53 		Z-119.300
+		G1 F10000 G53 		B-45						;rotate to appropriate pocket
+		G1 F2000 G53 		Z-119.300
 	O102 elseif [#<_selected_tool> GT 4]
 		(debug,Killing Macro because new tool no gt 4)
 		M99
@@ -114,9 +115,11 @@ G1 F1000 G53 Z-10
 	;G10 L20 P0 Z[#107]						;activate tool length offset to set tool length zero
 G1 f1000 G53 Z-10 
 
+g1 f2000 g53 x-200
+m65 p1
+
 G1 f1000 X#100 Y#101							; return to original position
 ;reenable keepout protection(Scienci)
-m960p1
 
 O202 if [#103 EQ 1] 						; restore spindle status
 	M3
@@ -131,5 +134,8 @@ O203 if [#104 EQ 1] 					; restore coolant status
 O203 endif
 
 G0 Z#102
+
+m960p1
+
 M99
 M99
