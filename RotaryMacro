@@ -1,18 +1,17 @@
 (debug,Changing tool #<_current_tool> to tool #<_selected_tool>)
 ; save current position
-#100=#<_x>
-(debug,X)
+#100=#<_x> ;Return current relative X coordinate including all offsets. Same as #5420. Store in #100
+(debug,X Value Stored)
 #101=#<_y>
-(debug,Y)
+(debug,Y Value Stored)
 #102=#<_z>
-(debug,Z)
+(debug,Z Value Stored)
 #103=#<_spindle_on> ;saving spindle status in a variable
-(debug,SPINDLE)
+(debug,SPINDLE State Stored)
 #104=#<_flood> ;saving coolant status in a variable
-(debug,FLOOD)
+(debug,FLOOD State Stored)
 #105=#<_mist>
-(debug,MIST)
-
+(debug,MIST State Stored)
 
 ;tool change code here
 (debug,Z RETRACT)
@@ -116,6 +115,7 @@ G1 F1000 G53 Z-10
 G1 f1000 G53 Z-10 
 
 g1 f2000 g53 x-200
+g4 p0
 m65 p1
 
 G1 f1000 X#100 Y#101							; return to original position
