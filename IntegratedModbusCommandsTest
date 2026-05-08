@@ -1,0 +1,43 @@
+(debug,Changing tool #<_current_tool> to tool #<_selected_tool>)
+; save current position
+#100=#<_x>
+(debug,X)
+#101=#<_y>
+(debug,Y)
+#102=#<_z>
+(debug,Z)
+#103=#<_spindle_on> ;saving spindle status in a variable
+(debug,SPINDLE)
+#104=#<_flood> ;saving coolant status in a variable
+(debug,FLOOD)
+#105=#<_mist>
+(debug,MIST)
+
+
+;tool change code here
+(debug,Z RETRACT)
+G1 F1000 G53 Z-10
+(debug,Z DONE) 
+M5 ;stop spindle
+(debug,SPINDLE STOPPED)
+M9 ;stop coolant/mist
+(debug,COOLANT STOPPED)
+
+M64 p1
+G04 P1 ;wait 1 second for atc door to be in position
+G65P7 S3 F2 R0 ;read DI0 on Slave 3
+#900=#<_value_returned>
+#901=#<_value>
+
+O901 if [#900 EQ 0] 						; If a modbus exception is received
+	(debug, Modbus Read Failed)
+	M99
+O901 endif
+
+O900 if [#901 EQ 1] 						; If door failed to open fault macro
+	(debug,ATC Door Failed to Open)
+	M99
+O900 endif
+M64 p0
+(debug,Modbus Read Worked)
+M99
