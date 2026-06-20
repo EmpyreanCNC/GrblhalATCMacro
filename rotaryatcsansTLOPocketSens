@@ -101,17 +101,17 @@
 	G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
 
 ;----------- Read Spindle Open/Closed State Over Modbus
-	;G65P7 S3 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
+	G65P7 S4 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
 		#904=#<_value_returned>
 		#905=#<_value>
-	;O109 if [#904 EQ 0] 						;If a modbus exception is received
-		;(debug, Modbus Read Failed)
-		;M99
-	;O109 endif
-	;O110 if [#905 EQ 1] 						;If door failed to open fault macro NEEDTODO - What value = tool in pocket and the inverse
-		;(debug,Tool Didn't Release)
-		;M99
-	;O110 endif
+	O109 if [#904 EQ 0] 						;If a modbus exception is received
+		(debug, Modbus Read Failed)
+		M99
+	O109 endif
+	O110 if [#905 EQ 1] 						;If door failed to open fault macro NEEDTODO - What value = tool in pocket and the inverse
+		(debug,Tool Didn't Release)
+		M99
+	O110 endif
 
 ;----------- Retract Spindle from Pocket
 	;(debug,Retracting)
@@ -120,17 +120,17 @@
 	G90	;set to Absolute Mode
 
 ;----------- Read Tool In Spindle True/False State Over Modbus -----------
-	;G65P7 S3 F2 R0 							;Placeholder for reading if Tool Still in Spindle NEEDTODO - Update with Slave and IO point number
+	G65P7 S4 F2 R1 							;Placeholder for reading if Tool Still in Spindle NEEDTODO - Update with Slave and IO point number
 		#906=#<_value_returned>
 		#907=#<_value>
-	;O111 if [#906 EQ 0] 						;If a modbus exception is received
-		;(debug, Modbus Read Failed)
-		;M99
-	;O111 endif
-	;O112 if [#907 EQ 1] 						;If door failed to open fault macro NEEDTODO - What value = tool in spindle and the inverse
-		;(debug,Tool Didn't Release)
-		;M99
-	;O112 endif
+	O111 if [#906 EQ 0] 						;If a modbus exception is received
+		(debug, Modbus Read Failed)
+		M99
+	O111 endif
+	O112 if [#907 EQ 1] 						;If door failed to open fault macro NEEDTODO - What value = tool in spindle and the inverse
+		(debug,Tool Didn't Release)
+		M99
+	O112 endif
 
 ;----------- select what tool position to rotate to based on current tool number
 	O113 if [#<_selected_tool> EQ 1]
@@ -160,17 +160,17 @@
 	G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
 
 ;----------- Read Spindle Open/Closed State Over Modbus
-	;G65P7 S3 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
+	G65P7 S4 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
 		#910=#<_value_returned>
 		#911=#<_value>
-	;O117 if [#910 EQ 0] 						;If a modbus exception is received
+	O117 if [#910 EQ 0] 						;If a modbus exception is received
 		;(debug, Modbus Read Failed)
 		;M99
-	;O117 endif
-	;O118 if [#911 EQ 0] 						;If Spindle Failed to Close fault macro - TODO Confirm What Value means what
+	O117 endif
+	O118 if [#911 EQ 0] 						;If Spindle Failed to Close fault macro - TODO Confirm What Value means what
 		;(debug,Spindle Didn't Close. Check Tool Number is Correct)
 		;M99
-	;O118 endif
+	O118 endif
 
 ;----------- update tool number
 	M61Q#<_selected_tool>						;set desired tool to current tool
@@ -181,17 +181,17 @@
 	G90	;set to Absolute Mode
 
 ;----------- Read Tool In Spindle True/False State Over Modbus -----------
-	;G65P7 S3 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
+	G65P7 S4 F2 R1 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
 		#912=#<_value_returned>
 		#913=#<_value> 
-	;O119 if [#912 EQ 0] 						;If a modbus exception is received
-		;(debug, Modbus Read Failed. Cancelling ATC Macro)
-		;M99
-	;O119 endif
-	;O120 if [#913 EQ 0] 						;If Spindle Failed to Close fault macro - TODO Confirm What Value means what
-		;(debug,Tool Not in Spindle.)
-		;M99
-	;O120 endif
+	O119 if [#912 EQ 0] 						;If a modbus exception is received
+		(debug, Modbus Read Failed. Cancelling ATC Macro)
+		M99
+	O119 endif
+	O120 if [#913 EQ 0] 						;If Spindle Failed to Close fault macro - TODO Confirm What Value means what
+		(debug,Tool Not in Spindle.)
+		M99
+	O120 endif
 	
 ;----------- Retract Spindle,	
 G1 F1000 G53 Z-10
@@ -205,6 +205,20 @@ G1 F1000 G53 Z-10
 
 ;----------- Close ATC Door
 	M65 p1
+	G04 P1 ;wait 1 second for atc door to be in position
+
+;----------- Read Door Position True/False State Over Modbus	
+	G65P7 S3 F2 R0 								;read DI0 on Slave 3 and also test modbus is working. If neither succeed fail the macro and fault the machine
+		#900=#<_value_returned>
+		#901=#<_value>
+	O103 if [#900 EQ 0] 						;If a modbus exception is received
+		(debug, Modbus Read Failed)
+		M99
+	O103 endif
+	O104 if [#901 EQ 0] 						;If door failed to open fault macro
+		(debug,ATC Door Failed to Close)
+		M99
+	O104 endif
 
 ;----------- Return to XY position at start of tool change
 	G1 f1000 X#100 Y#101							; return to original position
