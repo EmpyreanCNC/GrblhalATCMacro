@@ -29,28 +29,43 @@
 	M9 ;stop coolant/mist
 	(debug,COOLANT STOPPED)
 
-;----------- Check Validity of Current and Next Tool Number to prevent accidentally storing hand loaded tools
-	O101 if [#<_current_tool> GT 4]					;if tool number is incorrectly higher than 4, kill the macro 
+;----------- Check Validity of Current and Next Tool Number to prevent accidentally storing hand loaded tools or trying to store tools in slots that dont exist
+	O101 if [#<_current_tool> GT 4]					;if current tool number is incorrectly higher than 4, kill the macro 
 		(debug,Killing Macro because Selected Tool Number Greater than 4 - Invalid) 
 		M99
-	O101 elseif [#<_current_tool> LT 1]				;if tool number is less than 1, kill the macro
-		(debug,Killing Macro because Selected Tool Number is Less Then 1 - Invalid)
+	O101 elseif [#<_current_tool> LT 0]				;if current tool number is less than 0, kill the macro
+		(debug,Killing Macro because Selected Tool Number is Less Then 0 - Invalid)
 		M99
 	O101 endif
-	O102 if [#<_selected_tool> GT 4]				;if tool number is incorrectly higher than 4, kill the macro
+	O102 if [#<_selected_tool> GT 4]				;if next tool number is incorrectly higher than 4, kill the macro
 		(debug,Killing Macro because Selected Tool Number Greater than 4 - Invalid) 
 		M99
-	O102 elseif [#<_selected_tool> LT 1]			;if tool number is less than 1, kill the macro
-			(debug,Killing Macro because Selected Tool Number is Less Then 1 - Invalid)
+	O102 elseif [#<_selected_tool> LT 0]			;if next tool number is less than 0, kill the macro
+			(debug,Killing Macro because Selected Tool Number is Less Then 0 - Invalid)
 			M99
 	O102 endif
 
-;----------- Open ATC Door
+;----------- If the current tool number is 0, either the spindle is empty or a special tool is loaded. Check if tool is in spindle -----------
+	O220 if [#<_current_tool> EQ 0]
+		G65P7 S4 F2 R1 							;For reading if Tool  in Spindle 
+			#906=#<_value_returned>
+			#907=#<_value>
+		O221 if [#906 EQ 0] 						;If a modbus exception is received
+			(debug, Modbus Read Failed)
+			M99
+		O221 endif
+		O222 if [#907 EQ 1] 						;If tool already in spindle then it is a special and cannot be stored in carousel
+			(debug,Cannot Drop Off Special Tool in Carousel)
+			M99
+		O222 endif
+	O220 endif
+
+;----------- Open ATC Door ------ PROVED
 	M64 p1
 	G04 P1 ;wait 1 second for atc door to be in position
 
-;----------- Read Door Position True/False State Over Modbus	
-	G65P7 S3 F2 R0 								;read DI0 on Slave 3 and also test modbus is working. If neither succeed fail the macro and fault the machine
+;----------- Read Door Position True/False State Over Modbus------ PROVED	
+	G65P7 S3 F2 R0 								;read DI0 on Slave 3 and also test modbus is working. If either fail, exit the macro and fault the machine
 		#900=#<_value_returned>
 		#901=#<_value>
 	O103 if [#900 EQ 0] 						;If a modbus exception is received
@@ -62,45 +77,47 @@
 		M99
 	O104 endif
 
-;----------- move to x position ready for entry into tool swap
-	G1 G53 X-80 F1000
-	
-;----------- disable keepout protection(Scienci)
+;----------- disable keepout protection(Scienci)------ PROVED
 	m960p0
 	(debug,In Position to start toolchange)
 
-;----------- select what tool position to rotate to based on current tool number
-	O105 if [#<_current_tool> EQ 1]
-		G1 F1000 G53		B-1.8 					;rotate to appropriate pocket
-	O105 elseif [#<_current_tool> EQ 2]
-		G1 F1000 G53		B-16.2 					;rotate to appropriate pocket
-	O105 elseif [#<_current_tool> EQ 3]
-		G1 F1000 G53		B-30.6 					;rotate to appropriate pocket
-	O105 elseif [#<_current_tool> EQ 4]
-		G1 F1000 G53		B-45 					;rotate to appropriate pocket
-	O105 endif
+;----------- move to x position ready for entry into tool swap
+	O225 if [#<_current_tool> GT 0]
+		G1 G53 X-80 F1000
+	;----------- select what tool position to rotate to based on current tool number------ PROVED
+		O105 if [#<_current_tool> EQ 1]
+			G1 F1000 G53		B-1.8 					;rotate to appropriate pocket
+		O105 elseif [#<_current_tool> EQ 2]
+			G1 F1000 G53		B-16.2 					;rotate to appropriate pocket
+		O105 elseif [#<_current_tool> EQ 3]
+			G1 F1000 G53		B-30.6 					;rotate to appropriate pocket
+		O105 elseif [#<_current_tool> EQ 4]
+			G1 F1000 G53		B-45 					;rotate to appropriate pocket
+		O105 endif
+	;----------- Drop Tool Off at correct Z Height------ PROVED
+		O108 if [#<_current_tool> EQ 1]
+			G1 F1000 G53		Z-119.300				;move to tool rack entry height
+			G1 F2000 G53 		X-4.7					;enter pocket
+		O108 elseif [#<_current_tool> EQ 2]
+			G1 F1000 G53		Z-119.300				;move to tool rack entry height
+			G1 F2000 G53 		X-4.7					;enter pocket
+		O108 elseif [#<_current_tool> EQ 3]
+			G1 F1000 G53		Z-119.300				;move to tool rack entry height
+			G1 F2000 G53 		X-4.7					;enter pocket
+		O108 elseif [#<_current_tool> EQ 4]
+			G1 F1000 G53		Z-119.300				;move to tool rack entry height
+			G1 F2000 G53 		X-4.7					;enter pocket
+		O108 endif
+	O225 elseif [#<_current_tool> EQ 0] ;if current tool is 0
+		G1 G53 X-4.7 F1000
+	O225 endif
 
-;----------- Drop Tool Off at correct Z Height TODO - Double check tool entry height for each pocket, Individual to allow to tweaking of each pocket
-	O108 if [#<_current_tool> EQ 1]
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
-		G1 F2000 G53 		X-4.7					;enter pocket
-	O108 elseif [#<_current_tool> EQ 2]
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
-		G1 F2000 G53 		X-4.7					;enter pocket
-	O108 elseif [#<_current_tool> EQ 3]
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
-		G1 F2000 G53 		X-4.7					;enter pocket
-	O108 elseif [#<_current_tool> EQ 4]
-		G1 F1000 G53		Z-119.300				;move to tool rack entry height
-		G1 F2000 G53 		X-4.7					;enter pocket
-	O108 endif
-
-;----------- Open Spindle
+;----------- Open Spindle------ PROVED
 	G04 P0.1 							;pause for syncing immediate output on/off
 	M64 P3 								;release current tool
-	G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
+	G04 P1 								;pause for 1 second so that pneumatics come to final stroke positio 	n
 
-;----------- Read Spindle Open/Closed State Over Modbus
+;----------- Read Spindle Open/Closed State Over Modbus------ PROVED
 	G65P7 S4 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
 		#904=#<_value_returned>
 		#905=#<_value>
@@ -113,13 +130,7 @@
 		M99
 	O110 endif
 
-;----------- Retract Spindle from Pocket
-	;(debug,Retracting)
-	G91 ;set to Incremental Mode  
-	G1 F1000 Z60								;z axis up after tool release
-	G90	;set to Absolute Mode
-
-;----------- Read Tool In Spindle True/False State Over Modbus -----------
+;----------- Read Tool In Spindle True/False State Over Modbus ------ PROVED
 	G65P7 S4 F2 R1 							;Placeholder for reading if Tool Still in Spindle NEEDTODO - Update with Slave and IO point number
 		#906=#<_value_returned>
 		#907=#<_value>
@@ -132,7 +143,14 @@
 		M99
 	O112 endif
 
-;----------- select what tool position to rotate to based on current tool number
+;----------- update tool number
+	M61Q0						;set current tool to 0(spindle empty)
+
+;----------- Retract Spindle from Pocket
+	;(debug,Retracting)
+	G1 F1000 G53		Z-50						;z axis pickup staging
+
+;----------- select what tool position to rotate to based on current tool number ------ PROVED
 	O113 if [#<_selected_tool> EQ 1]
 		G1 F1000 G53		B-1.8 					;rotate to appropriate pocket
 	O113 elseif [#<_selected_tool> EQ 2]
@@ -143,7 +161,7 @@
 		G1 F1000 G53		B-45 					;rotate to appropriate pocket
 	O113 endif
 
-;----------- Pickup tool at correct Z Height TODO - Double check tool entry height for each pocket, Individual to allow to tweaking of each pocket
+;----------- Pickup tool at correct Z Height ------ PROVED
 	O116 if [#<_selected_tool> EQ 1]
 		G1 F1000 G53		Z-119.300				;move to tool rack entry height
 	O116 elseif [#<_selected_tool> EQ 2]
@@ -154,33 +172,25 @@
 		G1 F1000 G53		Z-119.300				;move to tool rack entry height
 	O116 endif
 
-;----------- Close Spindle
+;----------- Close Spindle ------ PROVED
 	G04 P0.1 							;pause for syncing immediate output on/off
 	M65 P3 								;release current tool
 	G04 P1 								;pause for 1 second so that pneumatics come to final stroke position
 
-;----------- Read Spindle Open/Closed State Over Modbus
-	G65P7 S4 F2 R0 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
+;----------- Read Spindle Open/Closed State Over Modbus ------ PROVED
+	G65P7 S4 F2 R0 							;Placeholder for reading if Spindle Opened
 		#910=#<_value_returned>
 		#911=#<_value>
 	O117 if [#910 EQ 0] 						;If a modbus exception is received
-		;(debug, Modbus Read Failed)
-		;M99
+		(debug, Modbus Read Failed)
+		M99
 	O117 endif
-	O118 if [#911 EQ 0] 						;If Spindle Failed to Close fault macro - TODO Confirm What Value means what
-		;(debug,Spindle Didn't Close. Check Tool Number is Correct)
-		;M99
+	O118 if [#911 EQ 0] 						;If Spindle Failed to Close fault macro
+		(debug,Spindle Didn't Close. Check Tool Number is Correct)
+		M99
 	O118 endif
 
-;----------- update tool number
-	M61Q#<_selected_tool>						;set desired tool to current tool
-
-;----------- leave pocket
-	G91 ;set to Incremental Mode
-	G1 F3000 X-50
-	G90	;set to Absolute Mode
-
-;----------- Read Tool In Spindle True/False State Over Modbus -----------
+;----------- Read Tool In Spindle True/False State Over Modbus ------ PROVED
 	G65P7 S4 F2 R1 							;Placeholder for reading if Spindle Opened NEEDTODO - Update with Slave and IO point number
 		#912=#<_value_returned>
 		#913=#<_value> 
@@ -192,38 +202,46 @@
 		(debug,Tool Not in Spindle.)
 		M99
 	O120 endif
-	
-;----------- Retract Spindle,	
-G1 F1000 G53 Z-10
 
-;----------- Move Spindle away from ATC Door to allow it to close -----------
+;----------- update tool number------ PROVED
+	M61Q#<_selected_tool>						;set current tool = desired tool
+
+;----------- leave pocket------ PROVED
+	G91 ;set to Incremental Mode
+	G1 F3000 X-50
+	G90	;set to Absolute Mode
+	
+;----------- Retract Spindle------ PROVED	
+	G1 F1000 G53 Z-10
+
+;----------- Move Spindle away from ATC Door to allow it to close ------ PROVED
 	g1 f1000 g53 x-300
 	g4 p0.1  ;dwell to ensure sender waits for move to complete before triggering atc door close
 
-;----------- Reenable keepout protection(Scienci)
+;----------- Reenable keepout protection(Scienci)------ PROVED
 	m960p1
 
-;----------- Close ATC Door
+;----------- Close ATC Door------ PROVED
 	M65 p1
 	G04 P1 ;wait 1 second for atc door to be in position
 
-;----------- Read Door Position True/False State Over Modbus	
+;----------- Read Door Position True/False State Over Modbus------ PROVED	
 	G65P7 S3 F2 R0 								;read DI0 on Slave 3 and also test modbus is working. If neither succeed fail the macro and fault the machine
-		#900=#<_value_returned>
-		#901=#<_value>
-	O103 if [#900 EQ 0] 						;If a modbus exception is received
+		#914=#<_value_returned>
+		#915=#<_value>
+	O121 if [#914 EQ 0] 						;If a modbus exception is received
 		(debug, Modbus Read Failed)
 		M99
-	O103 endif
-	O104 if [#901 EQ 0] 						;If door failed to open fault macro
+	O121 endif
+	O122 if [#915 EQ 0] 						;If door failed to open fault macro
 		(debug,ATC Door Failed to Close)
 		M99
-	O104 endif
+	O122 endif
 
-;----------- Return to XY position at start of tool change
+;----------- Return to XY position at start of tool change------ PROVED
 	G1 f1000 X#100 Y#101							; return to original position
 
-;----------- Restore Stored Values
+;----------- Restore Stored Values------ PROVED
 	O202 if [#103 EQ 1] 						; restore spindle status
 		M3
 	O202 endif
@@ -235,8 +253,8 @@ G1 F1000 G53 Z-10
 		M8
 	O204 endif
 
-;----------- Return to Z position at start of tool change
+;----------- Return to Z position at start of tool change------ PROVED
 	G1 f1000 Z#102
 
-;-----------End ATC Macro	
+;-----------End ATC Macro------ PROVED
 	M99
