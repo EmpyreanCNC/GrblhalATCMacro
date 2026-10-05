@@ -6,13 +6,14 @@
    		(abort, Selected tool already in spindle. Skipping.)
     O100 endif
 ;----------- save current position
+	M50 P0								;Disable feed override to ensure macro progresses at the programmed speed
 	#100=#<_x>
 	(debug,X)
 	#101=#<_y>
 	(debug,Y)
 	#102=#<_z>
 	(debug,Z)
-	#103=#<_spindle_on> 					;saving spindle status in a variable
+	#103=#<_spindle_on> 				;saving spindle status in a variable
 	(debug,SPINDLE)
 	#104=#<_flood> 						;saving coolant status in a variable
 	(debug,FLOOD)
@@ -577,5 +578,6 @@ g04 p0.1
 	O242 endif
 ;----------- Return to Z position at start of tool change
 	G1 f8000 Z#102
-;-----------End ATC Macro	
+;-----------End ATC Macro
+	M50 P1		;Reenable any feed override that might be engaged
 	M99
